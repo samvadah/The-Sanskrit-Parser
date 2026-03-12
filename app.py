@@ -1,21 +1,19 @@
 import streamlit as st
 import requests
 import urllib.parse
-from skrutable.splitting import Splitter
 
-# Initialize Skrutable Splitter once at startup to save time
-@st.cache_resource
-def load_splitter():
+# Attempt to import Skrutable with backward compatibility
+try:
+    from skrutable.splitting import Splitter
+except ImportError:
     try:
-        return Splitter()
-    except Exception as e:
-        print(f"Skrutable Init Error: {e}")
-        return None
+        from skrutable.splitter.wrapper import Splitter
+    except ImportError:
+        Splitter = None
 
 # --- Helpers ---
 def transliterate(text, target="IAST"):
     """Auto-detects script and converts to target using Aksharamukha."""
-    # Using the standardized Aksharamukha API endpoint
     url = f"https://api.aksharamukha.com/api/public/process?target={target}&text={urllib.parse.quote(text)}"
     try:
         res = requests.get(url, timeout=10)
@@ -29,6 +27,7 @@ def transliterate(text, target="IAST"):
 def call_dharmamitra(text):
     """Dharmamitra (Byte5) Tagging API"""
     url = "https://dharmamitra.org/api-tagging/tagging-parsed/"
+    # Note: Byte5 is the latest engine for Dharmamitra (2024-2025)
     payload = {"texts": [text], "grammar_type": "indian"}
     try:
         res = requests.post(url, json=payload, timeout=15)
@@ -39,20 +38,21 @@ def call_dharmamitra(text):
             return [{"word": t['form'], "root": t['lemma'], "tag": t.get('morphs', '')} for t in words]
         return []
     except Exception as e:
-        print(f"Dharmamitra API Error: {e}")
+        st.sidebar.error(f"Dharmamitra Connection Error: {e}")
         return []
 
 def call_hellwig(text):
     """Hellwig (2018) via Skrutable Remote API"""
-    splitter = load_splitter()
-    if not splitter:
+    if Splitter is None:
+        st.error("Skrutable library is not installed correctly. Check requirements.txt.")
         return []
+    
     try:
-        # Hellwig model via remote server call
-        result = splitter.split(text, split_method="hellwig")
+        s = Splitter()
+        result = s.split(text, split_method="hellwig")
         return [{"word": w, "root": w, "tag": "Segmented"} for w in str(result).split()]
     except Exception as e:
-        print(f"Hellwig Model Error: {e}")
+        st.sidebar.error(f"Hellwig Model Error: {e}")
         return []
 
 # --- UI Setup ---
@@ -71,16 +71,16 @@ user_input = st.text_area("Input Sanskrit (Any script):", "मृदुलस्
 
 if st.button("Parse & Search", type="primary"):
     # Convert input to IAST for the models
-    with st.spinner("Preparing text..."):
+    with st.spinner("Transliterating..."):
         iast_text = transliterate(user_input, "IAST")
     
     # 1. Parsing Logic
     data = []
     if "Dharmamitra" in model_opt:
-        with st.spinner("Calling Dharmamitra (Byte5)..."):
+        with st.spinner("Fetching from Dharmamitra (Byte5)..."):
             data = call_dharmamitra(iast_text)
     else:
-        with st.spinner("Calling Hellwig (2018)..."):
+        with st.spinner("Fetching from Hellwig (2018)..."):
             data = call_hellwig(iast_text)
     
     # 2. Results Display
@@ -110,4 +110,4 @@ if st.button("Parse & Search", type="primary"):
             with col2:
                 st.link_button(f"Lookup", link)
     else:
-        st.error("Model unavailable. If this persists, please check the 'Manage app' logs for connection errors.")
+        st.error("The selected model returned no data. Check the sidebar for specific errors or try the other model.")
