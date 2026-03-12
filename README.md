@@ -1,4 +1,4 @@
-# 🕉️ Sanskrit Multi-Parser
+# The Sanskrit Parser
 
 A unified web interface for Sanskrit NLP tasks. This tool allows users to input Sanskrit text in any script, parse it using world-class models, and instantly look up words in major Sanskrit dictionaries.
 
