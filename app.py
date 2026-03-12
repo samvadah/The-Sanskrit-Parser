@@ -2,14 +2,11 @@ import streamlit as st
 import requests
 import urllib.parse
 
-# Attempt to import Skrutable with backward compatibility
+# Safe Import for Skrutable
 try:
     from skrutable.splitting import Splitter
 except ImportError:
-    try:
-        from skrutable.splitter.wrapper import Splitter
-    except ImportError:
-        Splitter = None
+    Splitter = None
 
 # --- Helpers ---
 def transliterate(text, target="IAST"):
@@ -27,32 +24,38 @@ def transliterate(text, target="IAST"):
 def call_dharmamitra(text):
     """Dharmamitra (Byte5) Tagging API"""
     url = "https://dharmamitra.org/api-tagging/tagging-parsed/"
-    # Note: Byte5 is the latest engine for Dharmamitra (2024-2025)
-    payload = {"texts": [text], "grammar_type": "indian"}
+    # Payload changed to 'western' to fix the 422 error
+    payload = {
+        "texts": [text], 
+        "grammar_type": "western" 
+    }
+    headers = {"Content-Type": "application/json"}
     try:
-        res = requests.post(url, json=payload, timeout=15)
+        res = requests.post(url, json=payload, headers=headers, timeout=15)
         res.raise_for_status()
         data = res.json()
         if data and isinstance(data, list) and len(data) > 0:
             words = data[0].get('words', data[0].get('tokens', []))
-            return [{"word": t['form'], "root": t['lemma'], "tag": t.get('morphs', '')} for t in words]
+            return [{"word": t['form'], "root": t['lemma'], "tag": t.get('morphs', 'N/A')} for t in words]
         return []
     except Exception as e:
-        st.sidebar.error(f"Dharmamitra Connection Error: {e}")
+        st.sidebar.error(f"Dharmamitra Error: {e}")
         return []
 
 def call_hellwig(text):
     """Hellwig (2018) via Skrutable Remote API"""
     if Splitter is None:
-        st.error("Skrutable library is not installed correctly. Check requirements.txt.")
+        st.error("Skrutable library missing.")
         return []
     
     try:
+        # Initialize Splitter (v2.x method)
         s = Splitter()
-        result = s.split(text, split_method="hellwig")
+        # In Skrutable v2.x, use splitter_model='splitter_2018' instead of split_method
+        result = s.split(text, splitter_model='splitter_2018')
         return [{"word": w, "root": w, "tag": "Segmented"} for w in str(result).split()]
     except Exception as e:
-        st.sidebar.error(f"Hellwig Model Error: {e}")
+        st.sidebar.error(f"Hellwig Error: {e}")
         return []
 
 # --- UI Setup ---
@@ -70,11 +73,9 @@ with st.sidebar:
 user_input = st.text_area("Input Sanskrit (Any script):", "मृदुलस्मितांशुलहरीज्योत्स्ना")
 
 if st.button("Parse & Search", type="primary"):
-    # Convert input to IAST for the models
     with st.spinner("Transliterating..."):
         iast_text = transliterate(user_input, "IAST")
     
-    # 1. Parsing Logic
     data = []
     if "Dharmamitra" in model_opt:
         with st.spinner("Fetching from Dharmamitra (Byte5)..."):
@@ -83,18 +84,16 @@ if st.button("Parse & Search", type="primary"):
         with st.spinner("Fetching from Hellwig (2018)..."):
             data = call_hellwig(iast_text)
     
-    # 2. Results Display
     if data:
         st.subheader("Results")
         for item in data:
             disp_word = transliterate(item['word'], script)
             disp_root = transliterate(item['root'], script)
             
-            # Dictionary searches work best with Devanagari
+            # Prepare search query in Devanagari
             query = transliterate(item['root'], "Devanagari")
             q_enc = urllib.parse.quote(query)
             
-            # Dictionary routing
             if dict_opt == "Kosha.app":
                 link = f"https://kosha.app/?q={q_enc}"
             elif dict_opt == "Ambuda":
@@ -102,7 +101,6 @@ if st.button("Parse & Search", type="primary"):
             else:
                 link = f"https://sanskritkosha.com/dictionary/{q_enc}"
             
-            # Display UI
             col1, col2 = st.columns([3, 1])
             with col1:
                 st.markdown(f"**{disp_word}**")
@@ -110,4 +108,4 @@ if st.button("Parse & Search", type="primary"):
             with col2:
                 st.link_button(f"Lookup", link)
     else:
-        st.error("The selected model returned no data. Check the sidebar for specific errors or try the other model.")
+        st.error("No results found. Check sidebar for errors.")
