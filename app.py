@@ -4,13 +4,13 @@ import urllib.parse
 import streamlit.components.v1 as components
 
 # --- State Initialization ---
-# This is crucial to prevent results from disappearing when a widget is changed.
+# Prevents UI from resetting when a widget is changed.
 if 'parsed_data' not in st.session_state:
     st.session_state.parsed_data = []
 
 # --- Helpers ---
-def transliterate(text, target="IAST"):
-    """Converts script using Aksharamukha."""
+def transliterate(text, target="Devanagari"):
+    """Converts script using Aksharamukha. Defaults to Devanagari."""
     if not text: return ""
     url = f"https://api.aksharamukha.com/api/public/process?target={target}&text={urllib.parse.quote(text)}"
     try:
@@ -20,29 +20,29 @@ def transliterate(text, target="IAST"):
         return text
 
 # --- Models ---
-def call_dharmamitra(text):
-    """Dharmamitra (Byte5) - using the confirmed working curl payload."""
+def call_dharmamitra(iast_text):
+    """Dharmamitra (Byte5) - using the stable 'western' grammar type."""
     url = "https://dharmamitra.org/api-tagging/tagging-parsed/"
-    # The 'western' grammar_type is the stable one. "Byte5" refers to their backend engine.
-    payload = {"texts": [text], "grammar_type": "western"}
+    payload = {"texts": [iast_text], "grammar_type": "western"}
     try:
         res = requests.post(url, json=payload, timeout=15)
-        res.raise_for_status()
+        res.raise_for_status() # This will raise an error for 4xx or 5xx responses
         data = res.json()
-        if data and isinstance(data, list) and len(data) > 0:
-            tokens = data[0].get('words', [])
+        if data and data[0].get('words'):
+            tokens = data[0]['words']
             return [{"word": t['form'], "root": t['lemma'], "tag": t.get('morphs', '')} for t in tokens]
         return []
     except Exception as e:
-        st.sidebar.error(f"Dharmamitra Error: {e}")
+        st.sidebar.error(f"Dharmamitra Error: Could not connect or process. Details: {e}")
         return []
 
-def call_hellwig(text):
-    """Hellwig (2018) via Skrutable. Skrutable library must be installed."""
+def call_hellwig(iast_text):
+    """Hellwig (2018) via Skrutable. Corrected based on source code."""
     try:
         from skrutable.splitting import Splitter
-        s = Splitter()
-        result = s.split(text, splitter_model='splitter_2018')
+        # Correct Usage: Model is specified during initialization.
+        s = Splitter(splitter_model="splitter_2018")
+        result = s.split(iast_text)
         return [{"word": w} for w in str(result).split()]
     except Exception as e:
         st.sidebar.error(f"Hellwig/Skrutable Error: {e}")
@@ -57,41 +57,37 @@ with st.sidebar:
     st.header("⚙️ Settings")
     model_opt = st.radio("Parser Model", ["Dharmamitra (Byte5)", "Hellwig (2018)"])
     dict_opt = st.radio("Dictionary for Preview", ["Kosha.app", "Ambuda", "SanskritKosha"])
-    st.info("Output is always in Devanagari for clarity and dictionary compatibility.")
+    st.info("Output is permanently set to Devanagari for dictionary compatibility.")
 
 # --- Main Interface ---
 user_input = st.text_area("Input Sanskrit (any script):", "mṛdulasmitāṃśulaharījyotsnā")
 
 if st.button("Parse Text", type="primary"):
-    # 1. Standardize input to IAST for models
+    # Always convert input to IAST for the models
     iast_input = transliterate(user_input, "IAST")
     
-    # 2. Run selected Model and store results in session_state
-    is_hellwig = "Hellwig" in model_opt
-    if not is_hellwig:
-        with st.spinner("Parsing with Dharmamitra..."):
-            st.session_state.parsed_data = call_dharmamitra(iast_input)
+    # Run selected Model and save results to prevent them from disappearing
+    if "Dharmamitra" in model_opt:
+        st.session_state.parsed_data = call_dharmamitra(iast_input)
     else:
-        with st.spinner("Segmenting with Hellwig..."):
-            st.session_state.parsed_data = call_hellwig(iast_input)
+        st.session_state.parsed_data = call_hellwig(iast_input)
     
-    # After parsing, clear previous selections if any, to prevent errors
+    # Clear previous selection index to avoid errors
     if 'selected_word_idx' in st.session_state:
         del st.session_state.selected_word_idx
 
-# --- Display Results (This block runs independently of the button) ---
+# --- Display Results ---
 if st.session_state.parsed_data:
     st.subheader("Results")
     
-    # All display and lookup words are converted to Devanagari
+    # All display words are now hardcoded to Devanagari
     word_labels = [transliterate(item['word'], "Devanagari") for item in st.session_state.parsed_data]
     
-    # Using session_state to remember the selection
     selected_word_idx = st.selectbox(
-        "Select a word to preview in dictionary:", 
+        "Select a parsed word for dictionary lookup:", 
         range(len(word_labels)), 
         format_func=lambda x: word_labels[x],
-        key='selected_word_idx' # Key to store the index in session_state
+        key='selected_word_idx'
     )
     
     selected_item = st.session_state.parsed_data[selected_word_idx]
@@ -101,34 +97,33 @@ if st.session_state.parsed_data:
     with col1:
         st.metric("Selected Word", word_labels[selected_word_idx])
     with col2:
-        if 'root' in selected_item: # Check if the key exists (i.e., not Hellwig)
+        if 'root' in selected_item: # This correctly identifies Dharmamitra's output
             st.write(f"**Root:** {transliterate(selected_item['root'], 'Devanagari')}")
             st.write(f"**Grammar:** {selected_item['tag']}")
         else:
-            st.write("*Hellwig model provides segmentation only.*")
+            st.write("*(Segmentation only)*")
 
     st.divider()
 
-    # 3. Dictionary Preview (Internal Iframe)
-    # Search term is the root for Dharmamitra, or the word itself for Hellwig
-    search_term_iast = selected_item.get('root', selected_item.get('word'))
+    # --- Dictionary Preview ---
+    # Determine the search term (root for Dharmamitra, word for Hellwig)
+    search_term_iast = selected_item.get('root') or selected_item.get('word')
     devanagari_query = transliterate(search_term_iast, "Devanagari")
     q_enc = urllib.parse.quote(devanagari_query)
 
-    # Building the correct dictionary URL
-    if dict_opt == "Ambuda":
-        # Using the new, correct Ambuda URL
+    # Build dictionary URLs with corrected formats
+    if dict_opt == "Kosha.app":
+        # Using the new, correct Kosha.app URL format
+        dict_url = f"https://kosha.app/word/sa/{q_enc}"
+    elif dict_opt == "Ambuda":
         dict_url = f"https://ambuda.org/tools/dictionaries/apte-sh,shabdartha-kaustubha,shabdakalpadruma,apte,mw,shabdasagara,vacaspatyam,amara/{q_enc}"
-    elif dict_opt == "Kosha.app":
-        dict_url = f"https://kosha.app/?q={q_enc}"
     else:
         dict_url = f"https://sanskritkosha.com/dictionary/{q_enc}"
 
     st.write(f"🔗 [Open {dict_opt} in new tab]({dict_url})")
     
-    # Attempting Iframe Preview
+    # Iframe for preview
     components.iframe(dict_url, height=600, scrolling=True)
 
-# If the button has not been pressed and there's no data, show a message.
 elif not user_input:
-    st.info("Please enter some Sanskrit text and click 'Parse Text'.")
+    st.info("Enter Sanskrit text above and click 'Parse Text'.")
