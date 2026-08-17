@@ -1,3 +1,18 @@
+import ast
+# Patch for Python 3.14+ to prevent Aksharamukha ImportError
+if not hasattr(ast, 'Str'):
+    ast.Str = ast.Constant
+    ast.Num = ast.Constant
+    ast.Bytes = ast.Constant
+    ast.NameConstant = ast.Constant
+
+import streamlit as st
+import requests
+import re
+import urllib.parse
+from aksharamukha import transliterate
+
+# ... [rest of your code remains exactly the same] ...
 import streamlit as st
 import requests
 import re
