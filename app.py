@@ -163,10 +163,10 @@ def main():
     lang = st.sidebar.radio("Language / भाषा", ["English", "संस्कृतम्"])
 
     if lang == "संस्कृतम्":
-        t_title = "सखा। धर्ममित्रतन्त्रांशः"
-        t_subtitle = "**संस्कृतव्याकरणविश्लेषकः**"
+        t_title = "सखा"
+        t_subtitle = "**संस्कृतपदपरिचयकृत्**"
         t_caption = "सूचनम्। एषः यन्त्रनिर्मितः तन्त्रांशः अस्ति। कृपया पठनार्थमेव उपयुज्यताम्।"
-        t_input_label = "संस्कृतवाक्यमत्र लिख्यताम् उदा० वाग्देव्यै नमः"
+        t_input_label = "संस्कृतवाक्यमत्र लिख्यताम्। उदाहरणं वाग्देव्यै नमः।"
         t_btn = "विश्लेषणं कुरु"
         t_translate_eng = "🇬🇧 आङ्ग्लभाषया अनुवादः"
         t_settings = "⚙️ विकल्पाः"
@@ -202,6 +202,7 @@ def main():
             "<a href='https://github.com/samvadah/The-Sanskrit-Parser/issues' target='_blank' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black;'>गिड्ढब्जालस्थलम्</a>"
             "</div>"
         )
+        t_footer = '<div style="text-align: center; font-size: 0.9rem; color: #6b7280; margin-top: 2.5rem;">भारतदेशे श्रद्धया रचितं <a href="https://linktr.ee/samvadah" target="_blank" rel="noopener" style="color: #6b7280; text-decoration: underline;">संस्कृतसंवादेन</a>।</div>'
         t_analyzing = "विश्लेषणं प्रचलति"
         t_error_empty = "रिक्तवाक्यं न दीयताम्"
         t_error_fail = "विश्लेषणं विफलम्"
@@ -247,6 +248,7 @@ def main():
             "<a href='https://github.com/samvadah/The-Sanskrit-Parser/issues' target='_blank' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black;'>Open GitHub Issue</a>"
             "</div>"
         )
+        t_footer = '<div style="text-align: center; font-size: 0.9rem; color: #6b7280; margin-top: 2.5rem;">Made in India with devotion by <a href="https://linktr.ee/samvadah" target="_blank" rel="noopener" style="color: #6b7280; text-decoration: underline;">Sanskrit Samvadah</a></div>'
         t_analyzing = "Analyzing..."
         t_error_empty = "Text cannot be empty."
         t_error_fail = "Analysis failed:"
@@ -287,7 +289,6 @@ def main():
 
     raw_text = st.text_area(t_input_label, height=100)
     
-    # Render buttons inline
     col_btn1, col_btn2 = st.columns([1, 4])
     with col_btn1:
         submit_btn = st.button(t_btn, type="primary")
@@ -411,12 +412,16 @@ def main():
                 except Exception as e:
                     st.error(f"{t_error_fail} {e}")
 
+    # --- FOOTERS ---
     st.markdown("---")
     with st.expander(t_links_title, expanded=False):
         st.markdown(t_links)
 
     with st.expander(t_report_title, expanded=False):
         st.markdown(f"<div style='color: gray; font-size: 0.9em;'>{t_report_body}</div>", unsafe_allow_html=True)
+
+    # Bottom Footer
+    st.markdown(t_footer, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
