@@ -1,4 +1,4 @@
-# 🕉️ सखा (Sakhaa) — The Sanskrit NLP Parser & Reader Assistant
+# 🐻‍❄️ सखा (Sakhaa) — The Sanskrit NLP Parser & Reader Assistant
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://the-sanskrit-parser.streamlit.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
