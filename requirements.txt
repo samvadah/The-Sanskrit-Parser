@@ -1,3 +1,4 @@
 streamlit>=1.20.0
 aksharamukha>=1.0.0
+akshara>=0.0.5
 requests>=2.28.0
