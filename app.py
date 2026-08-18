@@ -1,5 +1,4 @@
 import ast
-# Patch for Python 3.14+ to prevent Aksharamukha ImportError
 if not hasattr(ast, 'Str'):
     ast.Str = ast.Constant
     ast.Num = ast.Constant
@@ -10,13 +9,13 @@ import streamlit as st
 import requests
 import re
 import urllib.parse
+import io
+import os
+import wave
 from aksharamukha import transliterate
 import akshara.varnakaarya as vk
-
-# Import the Skrutable Splitter
 from skrutable.splitting import Splitter
 
-# Cloudflare Proxy URL for Dharmamitra
 API_URL = "https://dharmamitra-proxy.avinash-varna.workers.dev"
 
 AKSHARAMUKHA_SCHEMES = [
@@ -28,6 +27,40 @@ AKSHARAMUKHA_SCHEMES = [
 @st.cache_resource
 def get_skrutable_splitter():
     return Splitter()
+
+def generate_sanskrit_audio(text, engine="AI4Bharat / Bhashini (Neural)"):
+    """Synthesizes genuine Sanskrit audio without falling back to Hindi."""
+    if "Bhashini" in engine:
+        # --- Option 1: AI4Bharat / Bhashini Sanskrit Neural Model ---
+        try:
+            from sanskrit_tts import default_tts
+            TTS = default_tts()
+            audio = TTS.synthesize(text)
+            fp = io.BytesIO()
+            audio.export(fp, format="mp3")
+            fp.seek(0)
+            return fp, "audio/mp3"
+        except Exception as e:
+            return f"Bhashini Error: {e}", None
+    else:
+        # --- Option 2: Local Hear2Read Model ---
+        try:
+            from piper.voice import PiperVoice
+            model_path = "hear2read_sanskrit.onnx"
+            if not os.path.exists(model_path):
+                return "MISSING_HEAR2READ_FILE", None
+                
+            voice = PiperVoice.load(model_path)
+            fp = io.BytesIO()
+            with wave.open(fp, "wb") as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(2)
+                wav_file.setframerate(voice.config.sample_rate)
+                voice.synthesize(text, wav_file)
+            fp.seek(0)
+            return fp, "audio/wav"
+        except Exception as e:
+            return f"Hear2Read Error: {e}", None
 
 def preprocess(text):
     text = text.replace("-\n", "")
@@ -163,7 +196,7 @@ def main():
     lang = st.sidebar.radio("Language / भाषा", ["English", "संस्कृतम्"])
 
     if lang == "संस्कृतम्":
-        t_title = "सखा"
+        t_title = "सखा।"
         t_subtitle = "**संस्कृतपदपरिचयकृत्**"
         t_caption = "सूचनम्। एषः यन्त्रनिर्मितः तन्त्रांशः अस्ति। कृपया पठनार्थमेव उपयुज्यताम्।"
         t_input_label = "संस्कृतवाक्यमत्र लिख्यताम्। उदाहरणं वाग्देव्यै नमः।"
@@ -172,8 +205,10 @@ def main():
         t_settings = "⚙️ विकल्पाः"
         t_model_label = "प्रारूपम्"
         t_dict_label = "कोशः"
+        t_tts_label = "उच्चारणयन्त्रम्"
         t_input_script = "निवेशलिपिः"
         t_output_script = "निर्गमलिपिः"
+        t_audio_title = "🔊 संस्कृतोच्चारणम्"
         t_akshara = "🔤 वर्णविश्लेषणम्"
         t_syllables = "अक्षराणि।"
         t_spelling = "विन्यासः।"
@@ -207,6 +242,7 @@ def main():
         t_error_empty = "रिक्तवाक्यं न दीयताम्"
         t_error_fail = "विश्लेषणं विफलम्"
         t_akshara_fail = "वर्णविश्लेषणं विफलम्"
+        t_audio_fail = "उच्चारणं विफलम्।"
         t_hellwig_error = "हेल्विग्-प्रारूपस्य सम्पर्कः विफलः।"
     else:
         t_title = "सखा - The Sanskrit Parser"
@@ -218,8 +254,10 @@ def main():
         t_settings = "⚙️ Settings"
         t_model_label = "Model"
         t_dict_label = "Dictionary"
+        t_tts_label = "Voice Engine"
         t_input_script = "Input Script"
         t_output_script = "Output Script"
+        t_audio_title = "🔊 Sanskrit Pronunciation"
         t_akshara = "🔤 Varna & Akshara Analysis (Powered by Akshara)"
         t_syllables = "Syllables:"
         t_spelling = "Spelling Breakdown:"
@@ -253,6 +291,7 @@ def main():
         t_error_empty = "Text cannot be empty."
         t_error_fail = "Analysis failed:"
         t_akshara_fail = "Akshara analysis could not process this string entirely."
+        t_audio_fail = "Audio generation failed."
         t_hellwig_error = "Failed to connect to the Hellwig API via Skrutable."
 
     def format_model(m):
@@ -277,6 +316,7 @@ def main():
     st.sidebar.title(t_settings)
     model_choice = st.sidebar.selectbox(t_model_label, ["Dharmamitra", "Hellwig (Segmentation Only)"], format_func=format_model)
     dict_choice = st.sidebar.selectbox(t_dict_label, ["Kosha.app", "Ambuda", "Sanskrit Kosha"], format_func=format_dict)
+    tts_choice = st.sidebar.selectbox(t_tts_label, ["AI4Bharat / Bhashini (Neural)", "Hear2Read (Local ONNX)"])
     
     st.sidebar.markdown("---")
     input_options = ["Auto-Detect"] + AKSHARAMUKHA_SCHEMES
@@ -312,6 +352,17 @@ def main():
                     iast_text = transliterate.process(input_script, "IAST", raw_text)
                     dev_text = transliterate.process(input_script, "Devanagari", raw_text)
 
+                    # --- GENUINE SANSKRIT AUDIO PLAYER ---
+                    st.markdown(f"**{t_audio_title}**")
+                    audio_fp, mime_type = generate_sanskrit_audio(dev_text, engine=tts_choice)
+                    
+                    if audio_fp == "MISSING_HEAR2READ_FILE":
+                        st.info("💡 Hear2Read file not found. Please upload `hear2read_sanskrit.onnx` to your repository or switch to 'AI4Bharat / Bhashini (Neural)' in the sidebar.")
+                    elif isinstance(audio_fp, io.BytesIO):
+                        st.audio(audio_fp, format=mime_type)
+                    else:
+                        st.warning(f"{t_audio_fail} ({audio_fp})")
+
                     with st.expander(t_akshara, expanded=False):
                         try:
                             vinyaasa = vk.get_vinyaasa(dev_text)
@@ -335,7 +386,6 @@ def main():
                     if not texts:
                         pass
                     elif "Hellwig" in model_choice:
-                        # --- HELLWIG ROUTE VIA SKRUTABLE ---
                         hellwig_data = call_hellwig_skrutable(texts)
                         st.subheader(t_padaccheda)
                         
@@ -349,7 +399,6 @@ def main():
                                 segs = entry.get("segmentation", [])
                                 st.code(" ".join(to_output(s) for s in segs), language="text")
                     else:
-                        # --- DHARMAMITRA ROUTE ---
                         data = call_dharmamitra_api(texts)
                         all_unsandhied = []
                         all_lemmas = []
@@ -412,7 +461,6 @@ def main():
                 except Exception as e:
                     st.error(f"{t_error_fail} {e}")
 
-    # --- FOOTERS ---
     st.markdown("---")
     with st.expander(t_links_title, expanded=False):
         st.markdown(t_links)
@@ -420,7 +468,6 @@ def main():
     with st.expander(t_report_title, expanded=False):
         st.markdown(f"<div style='color: gray; font-size: 0.9em;'>{t_report_body}</div>", unsafe_allow_html=True)
 
-    # Bottom Footer
     st.markdown(t_footer, unsafe_allow_html=True)
 
 if __name__ == "__main__":
