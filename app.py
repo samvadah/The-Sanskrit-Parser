@@ -13,7 +13,7 @@ import urllib.parse
 from aksharamukha import transliterate
 import akshara.varnakaarya as vk
 
-# Import the Skrutable Splitter (Connects to Tyler Neill's hosted Hellwig Model)
+# Import the Skrutable Splitter
 from skrutable.splitting import Splitter
 
 # Cloudflare Proxy URL for Dharmamitra
@@ -55,8 +55,14 @@ def call_hellwig_skrutable(texts):
     results = []
     for text in texts:
         try:
-            # Skrutable sends this to Tyler's server running the Hellwig model
-            res = splitter.split(text, from_scheme='IAST', to_scheme='IAST')
+            # EXPLICITLY OVERRIDING DEFAULT TO ENFORCE HELLWIG 2018 MODEL
+            # If not specified, Skrutable routes to Dharmamitra by default!
+            res = splitter.split(
+                text, 
+                from_scheme='IAST', 
+                to_scheme='IAST', 
+                splitter_model='splitter_2018'
+            )
             results.append({"segmentation": res.split()})
         except Exception as e:
             results.append({"error": str(e)})
