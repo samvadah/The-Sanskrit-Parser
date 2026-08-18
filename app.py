@@ -33,7 +33,6 @@ def split_into_lines(text):
     return [s.strip() for s in text.split("\n") if s.strip()]
 
 def call_api(texts):
-    # If using a custom Hellwig API endpoint, you could route it here based on st.session_state
     resp = requests.post(
         API_URL,
         json={"texts": texts, "grammar_type": "indic"},
@@ -119,22 +118,90 @@ def post_process_tags(word, ml_tags):
     final_output = " । ".join(clean_tokens) + " ।"
     return final_output.replace("-", " ")
 
-
 def get_dict_url(word_dev_encoded, choice):
     if choice == "Ambuda":
-        return f"https://ambuda.org/tools/dictionaries/{word_dev_encoded}"
+        return f"https://ambuda.org/tools/dictionaries/apte,vacaspatyam,apte-sh,shabdartha-kaustubha/{word_dev_encoded}"
     elif choice == "Sanskrit Kosha":
-        return f"https://kosha.sanskrit.today/word/sa/{word_dev_encoded}"
+        return f"https://sanskritkosha.com/?search={word_dev_encoded}"
     else:
         return f"https://kosha.app/word/sa/{word_dev_encoded}"
 
 def main():
-    st.set_page_config(page_title="सखा - Dharmamitra Analyzer", page_icon="🕉️", layout="wide")
+    st.set_page_config(page_title="सखा - The Sanskrit Parser", page_icon="🕉️", layout="wide")
 
-    # --- SIDEBAR SETTINGS ---
-    st.sidebar.title("⚙️ Settings")
-    model_choice = st.sidebar.selectbox("Model", ["Dharmamitra (Full Analysis)", "Hellwig (Segmentation Only)"])
-    dict_choice = st.sidebar.selectbox("Dictionary Website", ["Kosha.app", "Ambuda", "Sanskrit Kosha"])
+    # --- SIDEBAR: Language Toggle & Settings ---
+    lang = st.sidebar.radio("Language / भाषा", ["English", "संस्कृतम्"])
+
+    if lang == "संस्कृतम्":
+        t_title = "सखा - धर्ममित्र-तन्त्रांशः"
+        t_subtitle = "**संस्कृत-व्याकरण-विश्लेषकः**"
+        t_caption = "सूचनम्: एषः यन्त्रनिर्मितः तन्त्रांशः अस्ति। कृपया पठनार्थमेव उपयुज्यताम्।"
+        t_input_label = "संस्कृतवाक्यमत्र लिख्यताम् (उदा. वाग्देव्यै नमः)"
+        t_btn = "विश्लेषणं कुरु"
+        t_settings = "⚙️ विकल्पाः"
+        t_akshara = "🔤 वर्ण-अक्षर-विश्लेषणम् (Akshara)"
+        t_syllables = "अक्षराणि:"
+        t_spelling = "विन्यासः:"
+        t_total_chars = "आहत्य वर्णाः (Characters)"
+        t_padaccheda = "पदच्छेदः"
+        t_word_analysis = "पदविश्लेषणम्"
+        t_col_no = "क्रमः"
+        t_col_word = "पदम्"
+        t_col_lemma = "प्रातिपदिकम् / धातुः"
+        t_col_grammar = "व्याकरणम्"
+        t_hellwig_warn = "हेल्विग्-प्रारूपे केवलं पदच्छेदः लभ्यते।"
+        t_links_title = "🔗 अन्यानि तन्त्रांशाणि"
+        t_links = """
+        * 🧮 [**सङ्ख्या**](https://sankhya.streamlit.app) - संस्कृतसङ्ख्या परिवर्तकः
+        * 🧩 [**सन्धीराट्**](https://sandhify.streamlit.app) - सन्धि-योजकः
+        * 📰 [**संस्कृत-वार्ताः**](https://sanskritnews.streamlit.app) - नित्यवार्ता-पठनाय
+        * 📚 [**संस्कृत-जालस्थानानां सूचिः**](https://anotepad.com/note/read/qx4598pk)
+        """
+        t_report_title = "दोषावलोकनम्"
+        t_report_body = (
+            "<strong>दोषावलोकनम्।</strong> यत्र कुत्रापि दोषाः दृश्यन्ते सद्य एव विद्युत्पत्रेण गिड्ढब्जालस्थले वा सूच्यताम् ।<br><br>"
+            "<div style='text-align: center; margin-top: 15px;'>"
+            "<a href='mailto:samvadah@proton.me' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black; margin-right: 10px;'>विद्युत्पत्रम्</a>"
+            "<a href='https://github.com/samvadah/The-Sanskrit-Parser/issues' target='_blank' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black;'>गिड्ढब्जालस्थलम्</a>"
+            "</div>"
+        )
+    else:
+        t_title = "सखा - The Sanskrit Parser"
+        t_subtitle = "**Sanskrit Grammatical Analyzer**"
+        t_caption = "NOTE: Dharmamitra is AI/ML and can make mistakes. Please use this as a learning aid."
+        t_input_label = "Enter Sanskrit text (e.g. वाग्देव्यै नमः)"
+        t_btn = "Analyze"
+        t_settings = "⚙️ Settings"
+        t_akshara = "🔤 Varna & Akshara Analysis (Powered by Akshara)"
+        t_syllables = "Syllables (Akshara):"
+        t_spelling = "Spelling Breakdown (Vinyaasa):"
+        t_total_chars = "Total Characters"
+        t_padaccheda = "Padaccheda (Segmentation)"
+        t_word_analysis = "Word Analysis"
+        t_col_no = "#"
+        t_col_word = "Word"
+        t_col_lemma = "Lemma"
+        t_col_grammar = "Grammar"
+        t_hellwig_warn = "Hellwig mode active: Skipping morphological analysis. Showing segmentation only."
+        t_links_title = "🔗 Try these too"
+        t_links = """
+        * 🧮 [**Sankhya**](https://sankhya.streamlit.app) - Sanskrit Numerals Converter
+        * 🧩 [**Sandhify**](https://sandhify.streamlit.app) - Sandhi Joiner / Combiner
+        * 📰 [**Sanskrit News**](https://sanskritnews.streamlit.app) - Daily News Reader
+        * 📚 [**Annotated List of Sanskrit Websites**](https://anotepad.com/note/read/qx4598pk)
+        """
+        t_report_title = "Report Mistakes"
+        t_report_body = (
+            "<strong>Mistakes / Errors:</strong> If you spot any incorrect segmentations or grammatical analyses, please report them immediately via email or GitHub.<br><br>"
+            "<div style='text-align: center; margin-top: 15px;'>"
+            "<a href='mailto:samvadah@proton.me' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black; margin-right: 10px;'>Report via Email</a>"
+            "<a href='https://github.com/samvadah/The-Sanskrit-Parser/issues' target='_blank' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black;'>Open GitHub Issue</a>"
+            "</div>"
+        )
+
+    st.sidebar.title(t_settings)
+    model_choice = st.sidebar.selectbox("Model", ["Dharmamitra", "Hellwig (Segmentation Only)"])
+    dict_choice = st.sidebar.selectbox("Dictionary", ["Kosha.app", "Ambuda", "Sanskrit Kosha"])
     
     st.sidebar.markdown("---")
     st.sidebar.caption("Transliteration Preferences")
@@ -143,17 +210,18 @@ def main():
     output_script_sel = st.sidebar.selectbox("Output Script", AKSHARAMUKHA_SCHEMES, index=AKSHARAMUKHA_SCHEMES.index("Devanagari"))
 
     # --- MAIN UI ---
-    st.title("सखा - UI for Dharmamitra")
-    st.caption("NOTE: AI/ML tools can make mistakes. Please use this as a learning aid.")
+    st.title(t_title)
+    st.markdown(t_subtitle)
+    st.caption(t_caption)
 
-    raw_text = st.text_area("Enter Sanskrit text (e.g. वाग्देव्यै नमः)", height=100)
+    raw_text = st.text_area(t_input_label, height=100)
 
-    if st.button("Analyze", type="primary"):
+    if st.button(t_btn, type="primary"):
         if not raw_text.strip():
-            st.error("Please enter some Sanskrit text.")
+            st.error("Text cannot be empty.")
             return
 
-        with st.spinner(f"Analyzing with {model_choice.split()[0]}..."):
+        with st.spinner("Analyzing..."):
             try:
                 # 1. Transliteration Setup
                 if input_script_sel == "Auto-Detect":
@@ -165,26 +233,22 @@ def main():
                 iast_text = transliterate.process(input_script, "IAST", raw_text)
                 dev_text = transliterate.process(input_script, "Devanagari", raw_text)
                 
-                # 2. Akshara Analysis (Collapsible)
-                with st.expander("🔤 Varna & Akshara Analysis (Powered by Akshara)", expanded=False):
+                # 2. Akshara Analysis
+                with st.expander(t_akshara, expanded=False):
                     try:
                         vinyaasa = vk.get_vinyaasa(dev_text)
                         aksharas = vk.get_akshara(dev_text)
-                        st.markdown(f"**Syllables (Akshara):** `{', '.join(aksharas)}`")
-                        st.markdown(f"**Spelling Breakdown (Vinyaasa):** `{', '.join(vinyaasa)}`")
+                        st.markdown(f"**{t_syllables}** `{', '.join(aksharas)}`")
+                        st.markdown(f"**{t_spelling}** `{', '.join(vinyaasa)}`")
                         
-                        c1, c2, c3 = st.columns(3)
-                        c1.metric("Svaras (Vowels)", vk.count_svaras(dev_text))
-                        c2.metric("Vyanjanas (Consonants)", vk.count_vyanjanas(dev_text))
-                        c3.metric("Total Varnas", vk.count_varnas(dev_text))
+                        # Added total character count via len(vinyaasa) mapping Akshara's behavior
+                        st.metric(t_total_chars, len(vinyaasa))
                     except Exception as e:
                         st.warning(f"Akshara analysis could not process this string entirely. ({e})")
 
                 # 3. API Processing
                 texts = split_into_lines(preprocess(iast_text))
-                if not texts:
-                    return
-                
+                if not texts: return
                 data = call_api(texts)
                 
                 # 4. Extract Grammatical Data
@@ -203,23 +267,22 @@ def main():
                         
                 def to_output(txt):
                     return transliterate.process("IAST", output_script_sel, txt)
-                    
                 def to_dev(txt):
                     return transliterate.process("IAST", "Devanagari", txt)
                 
-                # Main Segmentation Output (Copiable)
-                st.subheader("Padaccheda (Segmentation)")
+                # Segmentation Output
+                st.subheader(t_padaccheda)
                 seg_output = " ".join(to_output(u) for u in all_unsandhied)
-                st.code(seg_output, language="text") # st.code allows one-click copy on hover!
+                st.code(seg_output, language="text") # Includes native Copy Button
                 
-                # Render table ONLY if Dharmamitra is selected
+                # Rendering Word Data
                 if "Hellwig" not in model_choice:
-                    st.subheader("Word Analysis")
+                    st.subheader(t_word_analysis)
                     table_html = "<div style='overflow-x:auto;'><table style='width:100%; border-collapse: collapse;'>"
-                    table_html += "<tr><th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>#</th>"
-                    table_html += "<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>Word</th>"
-                    table_html += "<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>Lemma</th>"
-                    table_html += "<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>Grammar</th></tr>"
+                    table_html += f"<tr><th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_no}</th>"
+                    table_html += f"<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_word}</th>"
+                    table_html += f"<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_lemma}</th>"
+                    table_html += f"<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_grammar}</th></tr>"
                     
                     for i in range(len(all_unsandhied)):
                         uns_out = to_output(all_unsandhied[i])
@@ -234,7 +297,6 @@ def main():
                         uns_dev_encoded = urllib.parse.quote(uns_dev)
                         lem_dev_encoded = urllib.parse.quote(lem_dev)
                         
-                        # Apply Dictionary routing logic
                         lemma_link = get_dict_url(lem_dev_encoded, dict_choice)
                         lemma_html = f'<a href="{lemma_link}" target="_blank" style="text-decoration:none; color:#1d4ed8;">{lem_out}</a>'
                         
@@ -249,20 +311,18 @@ def main():
                     table_html += "</table></div>"
                     st.markdown(table_html, unsafe_allow_html=True)
                 else:
-                    st.info("Hellwig mode active: Skipping morphological/lemma analysis. Showing segmentation only.")
+                    st.info(t_hellwig_warn)
                 
             except Exception as e:
                 st.error(f"Analysis failed: {e}")
 
-    # --- COLLAPSIBLE FOOTER ---
+    # --- FOOTERS ---
     st.markdown("---")
-    with st.expander("🔗 Try these too", expanded=False):
-        st.markdown("""
-        * 🧮 [**Sankhya**](https://sankhya.streamlit.app) - Sanskrit Numerals Converter
-        * 🧩 [**Sandhify**](https://sandhify.streamlit.app) - Sandhi Joiner/Splitter
-        * 📰 [**Sanskrit News**](https://sanskritnews.streamlit.app) - Daily News Reader
-        * 📚 [**Annotated List of Sanskrit Websites**](https://anotepad.com/note/read/qx4598pk)
-        """)
+    with st.expander(t_links_title, expanded=False):
+        st.markdown(t_links)
+
+    with st.expander(t_report_title, expanded=False):
+        st.markdown(f"<div style='color: gray; font-size: 0.9em;'>{t_report_body}</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
