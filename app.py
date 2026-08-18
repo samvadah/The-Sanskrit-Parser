@@ -11,28 +11,15 @@ import requests
 import re
 import urllib.parse
 from aksharamukha import transliterate
-
-# ... [rest of your code remains exactly the same] ...
-import streamlit as st
-import requests
-import re
-import urllib.parse
-from aksharamukha import transliterate
+import akshara.varnakaarya as vk
 
 # Cloudflare Proxy URL from dharmamitra_ui
 API_URL = "https://dharmamitra-proxy.avinash-varna.workers.dev"
 
-# Complete list of scripts supported by Aksharamukha
 AKSHARAMUKHA_SCHEMES = [
     "IAST", "ISO", "Harvard-Kyoto", "SLP1", "ITRANS", "Velthuis", "WX",
     "Devanagari", "Bengali", "Gujarati", "Gurmukhi", "Kannada", "Malayalam", 
-    "Oriya", "Tamil", "Telugu", "Assamese", "Manipuri", "Brahmi", "Grantha", 
-    "Kharoshthi", "Siddham", "Sharada", "Newa", "Modi", "Mahajani", "Multani", 
-    "Takri", "Dogra", "Tirhuta", "Ranjana", "Khudawadi", "Ahom", "Bhaiksuki", 
-    "Burmese", "Cham", "Javanese", "Khmer", "KhomThai", "Lao", "Mon", "Thai", 
-    "Tibetan", "Balinese", "PhagsPa", "Lepcha", "Limbu", "Santali", "SoraSompeng", 
-    "Wancho", "WarangCiti", "ZanabazarSquare", "Marchen", "Cyrillic", "Avestan", 
-    "OldPersian", "Urdu", "Sinhala"
+    "Oriya", "Tamil", "Telugu", "Brahmi", "Grantha", "Sharada", "Siddham"
 ]
 
 def preprocess(text):
@@ -46,6 +33,7 @@ def split_into_lines(text):
     return [s.strip() for s in text.split("\n") if s.strip()]
 
 def call_api(texts):
+    # If using a custom Hellwig API endpoint, you could route it here based on st.session_state
     resp = requests.post(
         API_URL,
         json={"texts": texts, "grammar_type": "indic"},
@@ -61,7 +49,6 @@ def post_process_tags(word, ml_tags):
 
     tags = ml_tags
     word_clean = word.strip()
-
     tags = tags.replace("Mood=साधारण रूप", "")
 
     if "लोट्)f" in tags and (word_clean.startswith("अ") or word_clean.startswith("आ")):
@@ -78,17 +65,11 @@ def post_process_tags(word, ml_tags):
 
     if "Mood=" in tags:
         tags = re.sub(r'Tense=[^,|]+', "", tags)
-
         if "विधिलिङ्" in tags:
             is_ashirlin = False
-            ashirlin_suffixes = [
-                "ियात्", "ीयात्", "ुयात्", "ूयात्",
-                "ेयात्", "ैयात्", "ोयात्", "ौयात्", "ृयात्"
-            ]
-            for suffix in ashirlin_suffixes:
-                if word_clean.endswith(suffix):
-                    is_ashirlin = True
-                    break
+            ashirlin_suffixes = ["ियात्", "ीयात्", "ुयात्", "ूयात्", "ेयात्", "ैयात्", "ोयात्", "ौयात्", "ृयात्"]
+            if any(word_clean.endswith(s) for s in ashirlin_suffixes):
+                is_ashirlin = True
             
             if is_ashirlin:
                 tags = tags.replace("Mood=विधिलिङ् (लिङ्)", "आशीर्लिङ्")
@@ -96,8 +77,6 @@ def post_process_tags(word, ml_tags):
             else:
                 tags = tags.replace("Mood=विधिलिङ् (लिङ्)", "विधिलिङ्")
                 tags = tags.replace("Mood=विधिलिङ्", "विधिलिङ्")
-                tags = tags.replace("Mood=आशीर्लिङ् (लिङ्)", "विधिलिङ्")
-                tags = tags.replace("Mood=आशीर्लिङ्", "विधिलिङ्")
 
         tags = tags.replace("Mood=आज्ञार्थक (लोट्)", "लोट्")
         tags = re.sub(r'Mood=Con', "लृङ्", tags)
@@ -120,7 +99,6 @@ def post_process_tags(word, ml_tags):
     tags = re.sub(r'प्रथामा', "प्रथमा", tags)
     tags = re.sub(r'साधारण। रूप', "", tags)
     tags = re.sub(r'is', "", tags)
-
     tags = re.sub(r'Gdv', "विध्यर्थक कृदन्त", tags)
     tags = re.sub(r'Conv', "पूर्वकालीन कृदन्त", tags)
     tags = re.sub(r'Inf', "हेत्वर्थक कृदन्त", tags)
@@ -130,13 +108,8 @@ def post_process_tags(word, ml_tags):
     clean_tokens = [t.strip() for t in tokens if t.strip()]
 
     if "Case=" not in ml_tags:
-        atmanepada_suffixes = [
-            "ते", "इते", "न्ते", "से", "ध्वे", "महे", "वहे",
-            "ताम्", "थाः", "ध्वम्", "वहि", "महि", "हे", "ष्ट",
-            "\u0947"
-        ]
+        atmanepada_suffixes = ["ते", "इते", "न्ते", "से", "ध्वे", "महे", "वहे", "ताम्", "थाः", "ध्वम्", "वहि", "महि", "हे", "ष्ट", "\u0947"]
         is_atmanepada = any(word_clean.endswith(s) for s in atmanepada_suffixes)
-        
         if word_clean.endswith("त") and "एकवचन" in ml_tags:
             is_atmanepada = True
             
@@ -144,153 +117,152 @@ def post_process_tags(word, ml_tags):
         clean_tokens.append(pada)
 
     final_output = " । ".join(clean_tokens) + " ।"
-    final_output = final_output.replace("-", " ")
-    
-    return final_output
+    return final_output.replace("-", " ")
 
+
+def get_dict_url(word_dev_encoded, choice):
+    if choice == "Ambuda":
+        return f"https://ambuda.org/tools/dictionaries/{word_dev_encoded}"
+    elif choice == "Sanskrit Kosha":
+        return f"https://kosha.sanskrit.today/word/sa/{word_dev_encoded}"
+    else:
+        return f"https://kosha.app/word/sa/{word_dev_encoded}"
 
 def main():
-    st.set_page_config(page_title="सखा - Dharmamitra Analyzer (Aksharamukha)", page_icon="🕉️", layout="wide")
+    st.set_page_config(page_title="सखा - Dharmamitra Analyzer", page_icon="🕉️", layout="wide")
 
+    # --- SIDEBAR SETTINGS ---
+    st.sidebar.title("⚙️ Settings")
+    model_choice = st.sidebar.selectbox("Model", ["Dharmamitra (Full Analysis)", "Hellwig (Segmentation Only)"])
+    dict_choice = st.sidebar.selectbox("Dictionary Website", ["Kosha.app", "Ambuda", "Sanskrit Kosha"])
+    
+    st.sidebar.markdown("---")
+    st.sidebar.caption("Transliteration Preferences")
+    input_options = ["Auto-Detect"] + AKSHARAMUKHA_SCHEMES
+    input_script_sel = st.sidebar.selectbox("Input Script", input_options, index=0)
+    output_script_sel = st.sidebar.selectbox("Output Script", AKSHARAMUKHA_SCHEMES, index=AKSHARAMUKHA_SCHEMES.index("Devanagari"))
+
+    # --- MAIN UI ---
     st.title("सखा - UI for Dharmamitra")
-    st.markdown("**Sanskrit Grammatical Analyzer with Aksharamukha Transliteration**")
-    st.caption("NOTE: Dharmamitra is AI/ML and can make mistakes. Please use this as a learning tool only.")
+    st.caption("NOTE: AI/ML tools can make mistakes. Please use this as a learning aid.")
 
-    raw_text = st.text_area("Enter Sanskrit text (e.g. वाग्देव्यै नमः or vāgdevyai namaḥ)", height=140)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        input_options = ["Auto-Detect"] + AKSHARAMUKHA_SCHEMES
-        input_script_sel = st.selectbox("Input Script / Scheme", input_options, index=0)
-
-    with col2:
-        default_idx = AKSHARAMUKHA_SCHEMES.index("Devanagari")
-        output_script_sel = st.selectbox("Output Script / Scheme", AKSHARAMUKHA_SCHEMES, index=default_idx)
+    raw_text = st.text_area("Enter Sanskrit text (e.g. वाग्देव्यै नमः)", height=100)
 
     if st.button("Analyze", type="primary"):
         if not raw_text.strip():
             st.error("Please enter some Sanskrit text.")
             return
 
-        with st.spinner("Analyzing with Aksharamukha & Dharmamitra..."):
+        with st.spinner(f"Analyzing with {model_choice.split()[0]}..."):
             try:
-                # 1. Detect or map input script via Aksharamukha
+                # 1. Transliteration Setup
                 if input_script_sel == "Auto-Detect":
                     detected_script = transliterate.auto_detect(raw_text)
                     input_script = detected_script if detected_script else "IAST"
-                    st.info(f"Detected Input Script: **{input_script}**")
                 else:
                     input_script = input_script_sel
 
-                # 2. Transliterate to IAST for the Dharmamitra backend
                 iast_text = transliterate.process(input_script, "IAST", raw_text)
+                dev_text = transliterate.process(input_script, "Devanagari", raw_text)
                 
-                # 3. Preprocess and split
-                preprocessed = preprocess(iast_text)
-                texts = split_into_lines(preprocessed)
-                
+                # 2. Akshara Analysis (Collapsible)
+                with st.expander("🔤 Varna & Akshara Analysis (Powered by Akshara)", expanded=False):
+                    try:
+                        vinyaasa = vk.get_vinyaasa(dev_text)
+                        aksharas = vk.get_akshara(dev_text)
+                        st.markdown(f"**Syllables (Akshara):** `{', '.join(aksharas)}`")
+                        st.markdown(f"**Spelling Breakdown (Vinyaasa):** `{', '.join(vinyaasa)}`")
+                        
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("Svaras (Vowels)", vk.count_svaras(dev_text))
+                        c2.metric("Vyanjanas (Consonants)", vk.count_vyanjanas(dev_text))
+                        c3.metric("Total Varnas", vk.count_varnas(dev_text))
+                    except Exception as e:
+                        st.warning(f"Akshara analysis could not process this string entirely. ({e})")
+
+                # 3. API Processing
+                texts = split_into_lines(preprocess(iast_text))
                 if not texts:
-                    st.error("No valid text to analyze.")
                     return
                 
-                # 4. Call Dharmamitra API
                 data = call_api(texts)
                 
-                # 5. Process grammatical analysis
-                warning = False
+                # 4. Extract Grammatical Data
                 all_unsandhied = []
                 all_lemmas = []
                 all_tags = []
                 
-                for j, orig in enumerate(texts):
+                for j in range(len(texts)):
                     entry = data[j] if j < len(data) else {}
                     gram_analysis = entry.get("grammatical_analysis", [])
                     
-                    unsandhied_parts = []
                     for g in gram_analysis:
-                        u_val = g.get("unsandhied", "").rstrip("-")
-                        l_val = g.get("lemma", "").rstrip("-")
-                        t_val = g.get("tag", "")
+                        all_unsandhied.append(g.get("unsandhied", "").rstrip("-"))
+                        all_lemmas.append(g.get("lemma", "").rstrip("-"))
+                        all_tags.append(g.get("tag", ""))
                         
-                        all_unsandhied.append(u_val)
-                        all_lemmas.append(l_val)
-                        all_tags.append(t_val)
-                        unsandhied_parts.append(u_val)
-                        
-                    unsandhied_joined = " ".join(unsandhied_parts)
-                    if len(orig) > len(unsandhied_joined):
-                        warning = True
-                        
-                if not all_unsandhied:
-                    st.error("No grammatical analysis returned. Try a different input.")
-                    return
-                
-                if warning:
-                    st.warning("Some words may have been lost during sandhi segmentation.")
-                    
-                # Aksharamukha conversion helpers
                 def to_output(txt):
                     return transliterate.process("IAST", output_script_sel, txt)
                     
-                def to_devanagari(txt):
+                def to_dev(txt):
                     return transliterate.process("IAST", "Devanagari", txt)
                 
-                st.subheader("Input")
-                st.info(" ".join(to_output(t) for t in texts))
-                
+                # Main Segmentation Output (Copiable)
                 st.subheader("Padaccheda (Segmentation)")
-                st.info(" ".join(to_output(u) for u in all_unsandhied))
+                seg_output = " ".join(to_output(u) for u in all_unsandhied)
+                st.code(seg_output, language="text") # st.code allows one-click copy on hover!
                 
-                st.subheader("Word Analysis")
-                
-                # Render table
-                table_html = "<div style='overflow-x:auto;'><table style='width:100%; border-collapse: collapse;'>"
-                table_html += "<tr><th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>#</th>"
-                table_html += "<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>Word</th>"
-                table_html += "<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>Lemma</th>"
-                table_html += "<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>Grammar</th></tr>"
-                
-                for i in range(len(all_unsandhied)):
-                    uns_out = to_output(all_unsandhied[i])
-                    lem_out = to_output(all_lemmas[i])
+                # Render table ONLY if Dharmamitra is selected
+                if "Hellwig" not in model_choice:
+                    st.subheader("Word Analysis")
+                    table_html = "<div style='overflow-x:auto;'><table style='width:100%; border-collapse: collapse;'>"
+                    table_html += "<tr><th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>#</th>"
+                    table_html += "<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>Word</th>"
+                    table_html += "<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>Lemma</th>"
+                    table_html += "<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>Grammar</th></tr>"
                     
-                    uns_dev = to_devanagari(all_unsandhied[i])
-                    lem_dev = to_devanagari(all_lemmas[i])
-                    raw_tag = all_tags[i]
-                    
-                    tag_result = post_process_tags(uns_dev, raw_tag)
-                    if output_script_sel != "Devanagari":
-                        tag_result = transliterate.process("Devanagari", output_script_sel, tag_result)
+                    for i in range(len(all_unsandhied)):
+                        uns_out = to_output(all_unsandhied[i])
+                        lem_out = to_output(all_lemmas[i])
+                        uns_dev = to_dev(all_unsandhied[i])
+                        lem_dev = to_dev(all_lemmas[i])
                         
-                    uns_dev_encoded = urllib.parse.quote(uns_dev)
-                    lem_dev_encoded = urllib.parse.quote(lem_dev)
-                    
-                    is_verb = any(x in raw_tag for x in ["Tense=", "Mood=", "VerbForm"])
-                    if is_verb:
-                        word_html = f'<a href="https://ashtadhyayi.com/dhatu?search={uns_dev_encoded}" target="_blank" style="text-decoration:none; color:#1d4ed8;">{uns_out}</a>'
-                    else:
-                        word_html = uns_out
+                        tag_result = post_process_tags(uns_dev, all_tags[i])
+                        if output_script_sel != "Devanagari":
+                            tag_result = transliterate.process("Devanagari", output_script_sel, tag_result)
+                            
+                        uns_dev_encoded = urllib.parse.quote(uns_dev)
+                        lem_dev_encoded = urllib.parse.quote(lem_dev)
                         
-                    lemma_html = f'<a href="https://kosha.app/word/sa/{lem_dev_encoded}" target="_blank" style="text-decoration:none; color:#1d4ed8;">{lem_out}</a>'
-                    
-                    table_html += f"<tr><td style='border-bottom:1px solid #eee; padding:10px;'>{i+1}</td>"
-                    table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{word_html}</td>"
-                    table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{lemma_html}</td>"
-                    table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{tag_result}</td></tr>"
-                    
-                table_html += "</table></div>"
-                st.markdown(table_html, unsafe_allow_html=True)
+                        # Apply Dictionary routing logic
+                        lemma_link = get_dict_url(lem_dev_encoded, dict_choice)
+                        lemma_html = f'<a href="{lemma_link}" target="_blank" style="text-decoration:none; color:#1d4ed8;">{lem_out}</a>'
+                        
+                        is_verb = any(x in all_tags[i] for x in ["Tense=", "Mood=", "VerbForm"])
+                        word_html = f'<a href="https://ashtadhyayi.com/dhatu?search={uns_dev_encoded}" target="_blank" style="text-decoration:none; color:#1d4ed8;">{uns_out}</a>' if is_verb else uns_out
+                        
+                        table_html += f"<tr><td style='border-bottom:1px solid #eee; padding:10px;'>{i+1}</td>"
+                        table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{word_html}</td>"
+                        table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{lemma_html}</td>"
+                        table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{tag_result}</td></tr>"
+                        
+                    table_html += "</table></div>"
+                    st.markdown(table_html, unsafe_allow_html=True)
+                else:
+                    st.info("Hellwig mode active: Skipping morphological/lemma analysis. Showing segmentation only.")
                 
             except Exception as e:
-                st.error(f"Analysis failed: {e}. Check your connection or input.")
-                
+                st.error(f"Analysis failed: {e}")
+
+    # --- COLLAPSIBLE FOOTER ---
     st.markdown("---")
-    st.markdown('''
-        <div style="text-align: center; font-size: 0.8rem; color: #6b7280;">
-            Powered by <a href="https://dharmamitra.org" target="_blank" rel="noopener">Dharmamitra</a>
-            &middot; Transliteration by <a href="https://github.com/virtualvinodh/aksharamukha" target="_blank" rel="noopener">Aksharamukha</a>
-        </div>
-    ''', unsafe_allow_html=True)
+    with st.expander("🔗 Try these too", expanded=False):
+        st.markdown("""
+        * 🧮 [**Sankhya**](https://sankhya.streamlit.app) - Sanskrit Numerals Converter
+        * 🧩 [**Sandhify**](https://sandhify.streamlit.app) - Sandhi Joiner/Splitter
+        * 📰 [**Sanskrit News**](https://sanskritnews.streamlit.app) - Daily News Reader
+        * 📚 [**Annotated List of Sanskrit Websites**](https://anotepad.com/note/read/qx4598pk)
+        """)
 
 if __name__ == "__main__":
     main()
