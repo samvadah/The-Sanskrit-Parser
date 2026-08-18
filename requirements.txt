@@ -3,5 +3,3 @@ aksharamukha>=1.0.0
 akshara>=0.0.5
 skrutable>=0.1.0
 requests>=2.28.0
-sanskrit-tts>=0.1.0
-piper-tts>=1.2.0
