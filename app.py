@@ -13,7 +13,7 @@ import urllib.parse
 from aksharamukha import transliterate
 import akshara.varnakaarya as vk
 
-# Cloudflare Proxy URL from dharmamitra_ui
+# Cloudflare Proxy URL for Dharmamitra
 API_URL = "https://dharmamitra-proxy.avinash-varna.workers.dev"
 
 AKSHARAMUKHA_SCHEMES = [
@@ -32,7 +32,7 @@ def preprocess(text):
 def split_into_lines(text):
     return [s.strip() for s in text.split("\n") if s.strip()]
 
-def call_api(texts):
+def call_dharmamitra_api(texts):
     resp = requests.post(
         API_URL,
         json={"texts": texts, "grammar_type": "indic"},
@@ -42,7 +42,25 @@ def call_api(texts):
     resp.raise_for_status()
     return resp.json()
 
-def post_process_tags(word, ml_tags):
+def call_hellwig_api(texts):
+    """
+    NOTE FOR DEVELOPER:
+    The Hellwig segmenter (as seen in hrishikeshrt/vaiyyakarana) runs locally 
+    via python libraries and does not have an open public HTTP API like Dharmamitra.
+    To use it in this Streamlit cloud app without crashing memory limits, you must 
+    host a small FastAPI wrapper around the segmenter on a backend server.
+    Replace 'HELLWIG_API_URL' below with your actual endpoint once deployed.
+    """
+    HELLWIG_API_URL = "http://your-own-api-url.com/hellwig/segment"
+    try:
+        resp = requests.post(HELLWIG_API_URL, json={"texts": texts}, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        # Returns a dummy error format for the frontend to gracefully display
+        return [{"error": "API_NOT_CONFIGURED"}] * len(texts)
+
+def post_process_tags(word, ml_tags, lang="English"):
     if not ml_tags or not ml_tags.strip():
         return "अव्यय"
 
@@ -115,7 +133,12 @@ def post_process_tags(word, ml_tags):
         pada = "आत्मनेपद" if is_atmanepada else "परस्मैपद"
         clean_tokens.append(pada)
 
-    final_output = " । ".join(clean_tokens) + " ।"
+    # Sanskrit formatting mode avoids space BEFORE danda. English formatting uses traditional spacing.
+    if lang == "संस्कृतम्":
+        final_output = "। ".join(clean_tokens) + "।"
+    else:
+        final_output = " । ".join(clean_tokens) + " ।"
+        
     return final_output.replace("-", " ")
 
 def get_dict_url(word_dev_encoded, choice):
@@ -129,22 +152,23 @@ def get_dict_url(word_dev_encoded, choice):
 def main():
     st.set_page_config(page_title="सखा - The Sanskrit Parser", page_icon="🕉️", layout="wide")
 
-    # --- SIDEBAR: Language Toggle & Settings ---
     lang = st.sidebar.radio("Language / भाषा", ["English", "संस्कृतम्"])
 
+    # --- TEXT/LOCALE DEFINITIONS ---
     if lang == "संस्कृतम्":
-        t_title = "सखा । धर्ममित्रतन्त्रांशः"
+        t_title = "सखा। धर्ममित्रतन्त्रांशः"
         t_subtitle = "**संस्कृतव्याकरणविश्लेषकः**"
-        t_caption = "सूचनम् । एषः यन्त्रनिर्मितः तन्त्रांशः अस्ति । कृपया पठनार्थमेव उपयुज्यताम् ।"
-        t_input_label = "संस्कृतवाक्यमत्र लिख्यताम् (उदा० वाग्देव्यै नमः)"
+        t_caption = "सूचनम्। एषः यन्त्रनिर्मितः तन्त्रांशः अस्ति। कृपया पठनार्थमेव उपयुज्यताम्।"
+        t_input_label = "संस्कृतवाक्यमत्र लिख्यताम् उदा० वाग्देव्यै नमः"
         t_btn = "विश्लेषणं कुरु"
         t_settings = "⚙️ विकल्पाः"
+        t_model_label = "प्रारूपम्"
         t_dict_label = "कोशः"
-        t_input_script = "इनपुट्-लिपिः"
-        t_output_script = "आउटपुट्-लिपिः"
+        t_input_script = "निवेशलिपिः"
+        t_output_script = "निर्गमलिपिः"
         t_akshara = "🔤 वर्णविश्लेषणम्"
-        t_syllables = "अक्षराणि ।"
-        t_spelling = "विन्यासः ।"
+        t_syllables = "अक्षराणि।"
+        t_spelling = "विन्यासः।"
         t_svaras = "स्वराः"
         t_vyanjanas = "व्यञ्जनानि"
         t_varnas = "वर्णाः"
@@ -153,40 +177,42 @@ def main():
         t_word_analysis = "पदविश्लेषणम्"
         t_col_no = "क्रमः"
         t_col_word = "पदम्"
-        t_col_lemma = "प्रातिपदिकम् / धातुः"
+        t_col_lemma = "प्रातिपदिकं धातुर्वा"
         t_col_grammar = "व्याकरणम्"
         t_links_title = "🔗 अन्यानि तन्त्रांशाणि"
         t_links = """
-        * 🧮 [**सङ्ख्या**](https://sankhya.streamlit.app) । संस्कृतसङ्ख्या परिवर्तकः
-        * 🧩 [**सन्धीराट्**](https://sandhify.streamlit.app) । सन्धियोजकः
-        * 📰 [**संस्कृतवार्ताः**](https://sanskritnews.streamlit.app) । संस्कृतवार्ताजनित्रम्
+        * 🧮 [**सङ्ख्या**](https://sankhya.streamlit.app) संस्कृतसङ्ख्यापरिवर्तकः
+        * 🧩 [**सन्धीराट्**](https://sandhify.streamlit.app) सन्धियोजकः
+        * 📰 [**संस्कृतवार्ताः**](https://sanskritnews.streamlit.app) संस्कृतवार्ताजनित्रम्
         * 📚 [**संस्कृतजालस्थानानां सूचिः**](https://anotepad.com/note/read/qx4598pk)
         """
         t_report_title = "दोषावलोकनम्"
         t_report_body = (
-            "<strong>दोषावलोकनम् ।</strong> यत्र कुत्रापि दोषाः दृश्यन्ते सद्य एव विद्युत्पत्रेण गिड्ढब्जालस्थले वा सूच्यताम् ।<br><br>"
+            "<strong>दोषावलोकनम्।</strong> यत्र कुत्रापि दोषाः दृश्यन्ते सद्य एव विद्युत्पत्रेण गिड्ढब्जालस्थले वा सूच्यताम्<br><br>"
             "<div style='text-align: center; margin-top: 15px;'>"
             "<a href='mailto:samvadah@proton.me' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black; margin-right: 10px;'>विद्युत्पत्रम्</a>"
             "<a href='https://github.com/samvadah/The-Sanskrit-Parser/issues' target='_blank' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black;'>गिड्ढब्जालस्थलम्</a>"
             "</div>"
         )
-        t_analyzing = "विश्लेषणं प्रचलति ।"
-        t_error_empty = "रिक्तवाक्यं न दीयताम् ।"
-        t_error_fail = "विश्लेषणं विफलम् ।"
-        t_akshara_fail = "वर्णविश्लेषणं विफलम् ।"
+        t_analyzing = "विश्लेषणं प्रचलति"
+        t_error_empty = "रिक्तवाक्यं न दीयताम्"
+        t_error_fail = "विश्लेषणं विफलम्"
+        t_akshara_fail = "वर्णविश्लेषणं विफलम्"
+        t_hellwig_warn = "हेल्विग्प्रारूपस्य तन्त्रांशः न लब्धः। कृपया 'app.py' मध्ये API-सङ्केतः योज्यताम्।"
     else:
         t_title = "सखा - The Sanskrit Parser"
         t_subtitle = "**Sanskrit Grammatical Analyzer**"
-        t_caption = "NOTE: Dharmamitra is AI/ML and can make mistakes. Please use this as a learning aid."
+        t_caption = "NOTE: AI/ML models can make mistakes. Please use this as a learning aid."
         t_input_label = "Enter Sanskrit text (e.g. वाग्देव्यै नमः)"
         t_btn = "Analyze"
         t_settings = "⚙️ Settings"
+        t_model_label = "Model"
         t_dict_label = "Dictionary"
         t_input_script = "Input Script"
         t_output_script = "Output Script"
         t_akshara = "🔤 Varna & Akshara Analysis (Powered by Akshara)"
-        t_syllables = "Syllables (Akshara):"
-        t_spelling = "Spelling Breakdown (Vinyaasa):"
+        t_syllables = "Syllables:"
+        t_spelling = "Spelling Breakdown:"
         t_svaras = "Svaras (Vowels)"
         t_vyanjanas = "Vyanjanas (Consonants)"
         t_varnas = "Total Varnas"
@@ -216,14 +242,36 @@ def main():
         t_error_empty = "Text cannot be empty."
         t_error_fail = "Analysis failed:"
         t_akshara_fail = "Akshara analysis could not process this string entirely."
+        t_hellwig_warn = "Hellwig API is not configured. Please define the API endpoint in 'app.py'."
+
+    # Formatter functions for sidebar UI purely cosmetic mapping
+    def format_model(m):
+        if lang == "संस्कृतम्":
+            if "Dharmamitra" in m: return "धर्ममित्रप्रारूपम्"
+            if "Hellwig" in m: return "हेल्विग्प्रारूपम्"
+        return m
+        
+    def format_dict(d):
+        if lang == "संस्कृतम्":
+            if "Kosha" in d and "app" in d: return "कोशाप्"
+            if "Ambuda" in d: return "अम्बुदा"
+            if "Sanskrit Kosha" in d: return "संस्कृतकोशः"
+        return d
+
+    def format_script(s):
+        if lang == "संस्कृतम्":
+            if s == "Auto-Detect": return "स्वयम्"
+            if s == "Devanagari": return "देवनागरी"
+        return s
 
     st.sidebar.title(t_settings)
-    dict_choice = st.sidebar.selectbox(t_dict_label, ["Kosha.app", "Ambuda", "Sanskrit Kosha"])
+    model_choice = st.sidebar.selectbox(t_model_label, ["Dharmamitra", "Hellwig (Segmentation Only)"], format_func=format_model)
+    dict_choice = st.sidebar.selectbox(t_dict_label, ["Kosha.app", "Ambuda", "Sanskrit Kosha"], format_func=format_dict)
     
     st.sidebar.markdown("---")
     input_options = ["Auto-Detect"] + AKSHARAMUKHA_SCHEMES
-    input_script_sel = st.sidebar.selectbox(t_input_script, input_options, index=0)
-    output_script_sel = st.sidebar.selectbox(t_output_script, AKSHARAMUKHA_SCHEMES, index=AKSHARAMUKHA_SCHEMES.index("Devanagari"))
+    input_script_sel = st.sidebar.selectbox(t_input_script, input_options, index=0, format_func=format_script)
+    output_script_sel = st.sidebar.selectbox(t_output_script, AKSHARAMUKHA_SCHEMES, index=AKSHARAMUKHA_SCHEMES.index("Devanagari"), format_func=format_script)
 
     # --- MAIN UI ---
     st.title(t_title)
@@ -253,8 +301,12 @@ def main():
                         try:
                             vinyaasa = vk.get_vinyaasa(dev_text)
                             aksharas = vk.get_akshara(dev_text)
-                            st.markdown(f"**{t_syllables}** `{', '.join(aksharas)}`")
-                            st.markdown(f"**{t_spelling}** `{', '.join(vinyaasa)}`")
+                            
+                            aksharas_str = "। ".join(aksharas) if lang == "संस्कृतम्" else ", ".join(aksharas)
+                            vinyaasa_str = "। ".join(vinyaasa) if lang == "संस्कृतम्" else ", ".join(vinyaasa)
+                            
+                            st.markdown(f"**{t_syllables}** `{aksharas_str}`")
+                            st.markdown(f"**{t_spelling}** `{vinyaasa_str}`")
                             
                             c1, c2, c3, c4 = st.columns(4)
                             c1.metric(t_svaras, vk.count_svaras(dev_text))
@@ -262,14 +314,26 @@ def main():
                             c3.metric(t_varnas, vk.count_varnas(dev_text))
                             c4.metric(t_total_chars, len(vinyaasa))
                         except Exception as e:
-                            st.warning(f"{t_akshara_fail} ({e})")
+                            st.warning(f"{t_akshara_fail} {e}")
 
-                    # 3. API Processing
+                    # 3. Model Routing
                     texts = split_into_lines(preprocess(iast_text))
-                    if texts:
-                        data = call_api(texts)
-                        
-                        # 4. Extract Grammatical Data
+                    if not texts:
+                        pass
+                    elif "Hellwig" in model_choice:
+                        # HELLWIG ROUTE
+                        hellwig_data = call_hellwig_api(texts)
+                        st.subheader(t_padaccheda)
+                        if hellwig_data and "error" in hellwig_data[0]:
+                            st.warning("⚠️ " + t_hellwig_warn)
+                        else:
+                            # Outputs segmentation cleanly once API is connected
+                            for entry in hellwig_data:
+                                segs = entry.get("segmentation", [])
+                                st.code(" ".join(segs), language="text")
+                    else:
+                        # DHARMAMITRA ROUTE
+                        data = call_dharmamitra_api(texts)
                         all_unsandhied = []
                         all_lemmas = []
                         all_tags = []
@@ -291,7 +355,7 @@ def main():
                         # Segmentation Output
                         st.subheader(t_padaccheda)
                         seg_output = " ".join(to_output(u) for u in all_unsandhied)
-                        st.code(seg_output, language="text") # Includes native Copy Button
+                        st.code(seg_output, language="text")
                         
                         # Rendering Word Data
                         st.subheader(t_word_analysis)
@@ -307,7 +371,7 @@ def main():
                             uns_dev = to_dev(all_unsandhied[i])
                             lem_dev = to_dev(all_lemmas[i])
                             
-                            tag_result = post_process_tags(uns_dev, all_tags[i])
+                            tag_result = post_process_tags(uns_dev, all_tags[i], lang=lang)
                             if output_script_sel != "Devanagari":
                                 tag_result = transliterate.process("Devanagari", output_script_sel, tag_result)
                                 
