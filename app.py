@@ -159,7 +159,7 @@ def main():
         t_title = "सखा। धर्ममित्रतन्त्रांशः"
         t_subtitle = "**संस्कृतव्याकरणविश्लेषकः**"
         t_caption = "सूचनम्। एषः यन्त्रनिर्मितः तन्त्रांशः अस्ति। कृपया पठनार्थमेव उपयुज्यताम्।"
-        t_input_label = "संस्कृतवाक्यमत्र लिख्यताम् उदा० वाग्देव्यै नमः"
+        t_input_label = "संस्कृतवाक्यमत्र लिख्यताम्। उदाहरणं वाग्देव्यै नमः"
         t_btn = "विश्लेषणं कुरु"
         t_settings = "⚙️ विकल्पाः"
         t_model_label = "प्रारूपम्"
@@ -253,8 +253,8 @@ def main():
         
     def format_dict(d):
         if lang == "संस्कृतम्":
-            if "Kosha" in d and "app" in d: return "कोशाप्"
-            if "Ambuda" in d: return "अम्बुदा"
+            if "Kosha" in d and "app" in d: return "कोशैप्"
+            if "Ambuda" in d: return "अम्बुदः"
             if "Sanskrit Kosha" in d: return "संस्कृतकोशः"
         return d
 
