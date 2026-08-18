@@ -27,7 +27,6 @@ AKSHARAMUKHA_SCHEMES = [
 
 @st.cache_resource
 def get_skrutable_splitter():
-    # Cache the Splitter so it doesn't re-initialize on every button click
     return Splitter()
 
 def preprocess(text):
@@ -55,8 +54,6 @@ def call_hellwig_skrutable(texts):
     results = []
     for text in texts:
         try:
-            # EXPLICITLY OVERRIDING DEFAULT TO ENFORCE HELLWIG 2018 MODEL
-            # If not specified, Skrutable routes to Dharmamitra by default!
             res = splitter.split(
                 text, 
                 from_scheme='IAST', 
@@ -171,6 +168,7 @@ def main():
         t_caption = "सूचनम्। एषः यन्त्रनिर्मितः तन्त्रांशः अस्ति। कृपया पठनार्थमेव उपयुज्यताम्।"
         t_input_label = "संस्कृतवाक्यमत्र लिख्यताम् उदा० वाग्देव्यै नमः"
         t_btn = "विश्लेषणं कुरु"
+        t_translate_eng = "🇬🇧 आङ्ग्लभाषया अनुवादः"
         t_settings = "⚙️ विकल्पाः"
         t_model_label = "प्रारूपम्"
         t_dict_label = "कोशः"
@@ -215,6 +213,7 @@ def main():
         t_caption = "NOTE: AI/ML models can make mistakes. Please use this as a learning aid."
         t_input_label = "Enter Sanskrit text (e.g. वाग्देव्यै नमः)"
         t_btn = "Analyze"
+        t_translate_eng = "🇬🇧 Translate to English (Google)"
         t_settings = "⚙️ Settings"
         t_model_label = "Model"
         t_dict_label = "Dictionary"
@@ -287,8 +286,17 @@ def main():
     st.caption(t_caption)
 
     raw_text = st.text_area(t_input_label, height=100)
+    
+    # Render buttons inline
+    col_btn1, col_btn2 = st.columns([1, 4])
+    with col_btn1:
+        submit_btn = st.button(t_btn, type="primary")
+    with col_btn2:
+        if raw_text.strip():
+            encoded_text = urllib.parse.quote(raw_text)
+            st.link_button(t_translate_eng, f"https://translate.google.com/?sl=sa&tl=en&text={encoded_text}&op=translate")
 
-    if st.button(t_btn, type="primary"):
+    if submit_btn:
         if not raw_text.strip():
             st.error(t_error_empty)
         else:
@@ -302,7 +310,7 @@ def main():
 
                     iast_text = transliterate.process(input_script, "IAST", raw_text)
                     dev_text = transliterate.process(input_script, "Devanagari", raw_text)
-                    
+
                     with st.expander(t_akshara, expanded=False):
                         try:
                             vinyaasa = vk.get_vinyaasa(dev_text)
