@@ -133,38 +133,47 @@ def main():
     lang = st.sidebar.radio("Language / भाषा", ["English", "संस्कृतम्"])
 
     if lang == "संस्कृतम्":
-        t_title = "सखा - धर्ममित्र-तन्त्रांशः"
-        t_subtitle = "**संस्कृत-व्याकरण-विश्लेषकः**"
-        t_caption = "सूचनम्: एषः यन्त्रनिर्मितः तन्त्रांशः अस्ति। कृपया पठनार्थमेव उपयुज्यताम्।"
-        t_input_label = "संस्कृतवाक्यमत्र लिख्यताम् (उदा. वाग्देव्यै नमः)"
+        t_title = "सखा । धर्ममित्रतन्त्रांशः"
+        t_subtitle = "**संस्कृतव्याकरणविश्लेषकः**"
+        t_caption = "सूचनम् । एषः यन्त्रनिर्मितः तन्त्रांशः अस्ति । कृपया पठनार्थमेव उपयुज्यताम् ।"
+        t_input_label = "संस्कृतवाक्यमत्र लिख्यताम् (उदा० वाग्देव्यै नमः)"
         t_btn = "विश्लेषणं कुरु"
         t_settings = "⚙️ विकल्पाः"
-        t_akshara = "🔤 वर्ण-अक्षर-विश्लेषणम् (Akshara)"
-        t_syllables = "अक्षराणि:"
-        t_spelling = "विन्यासः:"
-        t_total_chars = "आहत्य वर्णाः (Characters)"
+        t_dict_label = "कोशः"
+        t_input_script = "इनपुट्-लिपिः"
+        t_output_script = "आउटपुट्-लिपिः"
+        t_akshara = "🔤 वर्णविश्लेषणम्"
+        t_syllables = "अक्षराणि ।"
+        t_spelling = "विन्यासः ।"
+        t_svaras = "स्वराः"
+        t_vyanjanas = "व्यञ्जनानि"
+        t_varnas = "वर्णाः"
+        t_total_chars = "आहत्य वर्णाः"
         t_padaccheda = "पदच्छेदः"
         t_word_analysis = "पदविश्लेषणम्"
         t_col_no = "क्रमः"
         t_col_word = "पदम्"
         t_col_lemma = "प्रातिपदिकम् / धातुः"
         t_col_grammar = "व्याकरणम्"
-        t_hellwig_warn = "हेल्विग्-प्रारूपे केवलं पदच्छेदः लभ्यते।"
         t_links_title = "🔗 अन्यानि तन्त्रांशाणि"
         t_links = """
-        * 🧮 [**सङ्ख्या**](https://sankhya.streamlit.app) - संस्कृतसङ्ख्या परिवर्तकः
-        * 🧩 [**सन्धीराट्**](https://sandhify.streamlit.app) - सन्धि-योजकः
-        * 📰 [**संस्कृत-वार्ताः**](https://sanskritnews.streamlit.app) - नित्यवार्ता-पठनाय
-        * 📚 [**संस्कृत-जालस्थानानां सूचिः**](https://anotepad.com/note/read/qx4598pk)
+        * 🧮 [**सङ्ख्या**](https://sankhya.streamlit.app) । संस्कृतसङ्ख्या परिवर्तकः
+        * 🧩 [**सन्धीराट्**](https://sandhify.streamlit.app) । सन्धियोजकः
+        * 📰 [**संस्कृतवार्ताः**](https://sanskritnews.streamlit.app) । संस्कृतवार्ताजनित्रम्
+        * 📚 [**संस्कृतजालस्थानानां सूचिः**](https://anotepad.com/note/read/qx4598pk)
         """
         t_report_title = "दोषावलोकनम्"
         t_report_body = (
-            "<strong>दोषावलोकनम्।</strong> यत्र कुत्रापि दोषाः दृश्यन्ते सद्य एव विद्युत्पत्रेण गिड्ढब्जालस्थले वा सूच्यताम् ।<br><br>"
+            "<strong>दोषावलोकनम् ।</strong> यत्र कुत्रापि दोषाः दृश्यन्ते सद्य एव विद्युत्पत्रेण गिड्ढब्जालस्थले वा सूच्यताम् ।<br><br>"
             "<div style='text-align: center; margin-top: 15px;'>"
             "<a href='mailto:samvadah@proton.me' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black; margin-right: 10px;'>विद्युत्पत्रम्</a>"
             "<a href='https://github.com/samvadah/The-Sanskrit-Parser/issues' target='_blank' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black;'>गिड्ढब्जालस्थलम्</a>"
             "</div>"
         )
+        t_analyzing = "विश्लेषणं प्रचलति ।"
+        t_error_empty = "रिक्तवाक्यं न दीयताम् ।"
+        t_error_fail = "विश्लेषणं विफलम् ।"
+        t_akshara_fail = "वर्णविश्लेषणं विफलम् ।"
     else:
         t_title = "सखा - The Sanskrit Parser"
         t_subtitle = "**Sanskrit Grammatical Analyzer**"
@@ -172,9 +181,15 @@ def main():
         t_input_label = "Enter Sanskrit text (e.g. वाग्देव्यै नमः)"
         t_btn = "Analyze"
         t_settings = "⚙️ Settings"
+        t_dict_label = "Dictionary"
+        t_input_script = "Input Script"
+        t_output_script = "Output Script"
         t_akshara = "🔤 Varna & Akshara Analysis (Powered by Akshara)"
         t_syllables = "Syllables (Akshara):"
         t_spelling = "Spelling Breakdown (Vinyaasa):"
+        t_svaras = "Svaras (Vowels)"
+        t_vyanjanas = "Vyanjanas (Consonants)"
+        t_varnas = "Total Varnas"
         t_total_chars = "Total Characters"
         t_padaccheda = "Padaccheda (Segmentation)"
         t_word_analysis = "Word Analysis"
@@ -182,12 +197,11 @@ def main():
         t_col_word = "Word"
         t_col_lemma = "Lemma"
         t_col_grammar = "Grammar"
-        t_hellwig_warn = "Hellwig mode active: Skipping morphological analysis. Showing segmentation only."
         t_links_title = "🔗 Try these too"
         t_links = """
         * 🧮 [**Sankhya**](https://sankhya.streamlit.app) - Sanskrit Numerals Converter
-        * 🧩 [**Sandhify**](https://sandhify.streamlit.app) - Sandhi Joiner / Combiner
-        * 📰 [**Sanskrit News**](https://sanskritnews.streamlit.app) - Daily News Reader
+        * 🧩 [**Sandhify**](https://sandhify.streamlit.app) - Sandhi Conjugator for Sanskrit texts
+        * 📰 [**Sanskrit News**](https://sanskritnews.streamlit.app) - Sanskrit News Generator
         * 📚 [**Annotated List of Sanskrit Websites**](https://anotepad.com/note/read/qx4598pk)
         """
         t_report_title = "Report Mistakes"
@@ -198,16 +212,18 @@ def main():
             "<a href='https://github.com/samvadah/The-Sanskrit-Parser/issues' target='_blank' style='text-decoration: none; padding: 5px 10px; background-color: #f0f2f6; border-radius: 5px; color: black;'>Open GitHub Issue</a>"
             "</div>"
         )
+        t_analyzing = "Analyzing..."
+        t_error_empty = "Text cannot be empty."
+        t_error_fail = "Analysis failed:"
+        t_akshara_fail = "Akshara analysis could not process this string entirely."
 
     st.sidebar.title(t_settings)
-    model_choice = st.sidebar.selectbox("Model", ["Dharmamitra", "Hellwig (Segmentation Only)"])
-    dict_choice = st.sidebar.selectbox("Dictionary", ["Kosha.app", "Ambuda", "Sanskrit Kosha"])
+    dict_choice = st.sidebar.selectbox(t_dict_label, ["Kosha.app", "Ambuda", "Sanskrit Kosha"])
     
     st.sidebar.markdown("---")
-    st.sidebar.caption("Transliteration Preferences")
     input_options = ["Auto-Detect"] + AKSHARAMUKHA_SCHEMES
-    input_script_sel = st.sidebar.selectbox("Input Script", input_options, index=0)
-    output_script_sel = st.sidebar.selectbox("Output Script", AKSHARAMUKHA_SCHEMES, index=AKSHARAMUKHA_SCHEMES.index("Devanagari"))
+    input_script_sel = st.sidebar.selectbox(t_input_script, input_options, index=0)
+    output_script_sel = st.sidebar.selectbox(t_output_script, AKSHARAMUKHA_SCHEMES, index=AKSHARAMUKHA_SCHEMES.index("Devanagari"))
 
     # --- MAIN UI ---
     st.title(t_title)
@@ -218,103 +234,102 @@ def main():
 
     if st.button(t_btn, type="primary"):
         if not raw_text.strip():
-            st.error("Text cannot be empty.")
-            return
+            st.error(t_error_empty)
+        else:
+            with st.spinner(t_analyzing):
+                try:
+                    # 1. Transliteration Setup
+                    if input_script_sel == "Auto-Detect":
+                        detected_script = transliterate.auto_detect(raw_text)
+                        input_script = detected_script if detected_script else "IAST"
+                    else:
+                        input_script = input_script_sel
 
-        with st.spinner("Analyzing..."):
-            try:
-                # 1. Transliteration Setup
-                if input_script_sel == "Auto-Detect":
-                    detected_script = transliterate.auto_detect(raw_text)
-                    input_script = detected_script if detected_script else "IAST"
-                else:
-                    input_script = input_script_sel
-
-                iast_text = transliterate.process(input_script, "IAST", raw_text)
-                dev_text = transliterate.process(input_script, "Devanagari", raw_text)
-                
-                # 2. Akshara Analysis
-                with st.expander(t_akshara, expanded=False):
-                    try:
-                        vinyaasa = vk.get_vinyaasa(dev_text)
-                        aksharas = vk.get_akshara(dev_text)
-                        st.markdown(f"**{t_syllables}** `{', '.join(aksharas)}`")
-                        st.markdown(f"**{t_spelling}** `{', '.join(vinyaasa)}`")
-                        
-                        # Added total character count via len(vinyaasa) mapping Akshara's behavior
-                        st.metric(t_total_chars, len(vinyaasa))
-                    except Exception as e:
-                        st.warning(f"Akshara analysis could not process this string entirely. ({e})")
-
-                # 3. API Processing
-                texts = split_into_lines(preprocess(iast_text))
-                if not texts: return
-                data = call_api(texts)
-                
-                # 4. Extract Grammatical Data
-                all_unsandhied = []
-                all_lemmas = []
-                all_tags = []
-                
-                for j in range(len(texts)):
-                    entry = data[j] if j < len(data) else {}
-                    gram_analysis = entry.get("grammatical_analysis", [])
+                    iast_text = transliterate.process(input_script, "IAST", raw_text)
+                    dev_text = transliterate.process(input_script, "Devanagari", raw_text)
                     
-                    for g in gram_analysis:
-                        all_unsandhied.append(g.get("unsandhied", "").rstrip("-"))
-                        all_lemmas.append(g.get("lemma", "").rstrip("-"))
-                        all_tags.append(g.get("tag", ""))
-                        
-                def to_output(txt):
-                    return transliterate.process("IAST", output_script_sel, txt)
-                def to_dev(txt):
-                    return transliterate.process("IAST", "Devanagari", txt)
-                
-                # Segmentation Output
-                st.subheader(t_padaccheda)
-                seg_output = " ".join(to_output(u) for u in all_unsandhied)
-                st.code(seg_output, language="text") # Includes native Copy Button
-                
-                # Rendering Word Data
-                if "Hellwig" not in model_choice:
-                    st.subheader(t_word_analysis)
-                    table_html = "<div style='overflow-x:auto;'><table style='width:100%; border-collapse: collapse;'>"
-                    table_html += f"<tr><th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_no}</th>"
-                    table_html += f"<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_word}</th>"
-                    table_html += f"<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_lemma}</th>"
-                    table_html += f"<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_grammar}</th></tr>"
-                    
-                    for i in range(len(all_unsandhied)):
-                        uns_out = to_output(all_unsandhied[i])
-                        lem_out = to_output(all_lemmas[i])
-                        uns_dev = to_dev(all_unsandhied[i])
-                        lem_dev = to_dev(all_lemmas[i])
-                        
-                        tag_result = post_process_tags(uns_dev, all_tags[i])
-                        if output_script_sel != "Devanagari":
-                            tag_result = transliterate.process("Devanagari", output_script_sel, tag_result)
+                    # 2. Akshara Analysis
+                    with st.expander(t_akshara, expanded=False):
+                        try:
+                            vinyaasa = vk.get_vinyaasa(dev_text)
+                            aksharas = vk.get_akshara(dev_text)
+                            st.markdown(f"**{t_syllables}** `{', '.join(aksharas)}`")
+                            st.markdown(f"**{t_spelling}** `{', '.join(vinyaasa)}`")
                             
-                        uns_dev_encoded = urllib.parse.quote(uns_dev)
-                        lem_dev_encoded = urllib.parse.quote(lem_dev)
+                            c1, c2, c3, c4 = st.columns(4)
+                            c1.metric(t_svaras, vk.count_svaras(dev_text))
+                            c2.metric(t_vyanjanas, vk.count_vyanjanas(dev_text))
+                            c3.metric(t_varnas, vk.count_varnas(dev_text))
+                            c4.metric(t_total_chars, len(vinyaasa))
+                        except Exception as e:
+                            st.warning(f"{t_akshara_fail} ({e})")
+
+                    # 3. API Processing
+                    texts = split_into_lines(preprocess(iast_text))
+                    if texts:
+                        data = call_api(texts)
                         
-                        lemma_link = get_dict_url(lem_dev_encoded, dict_choice)
-                        lemma_html = f'<a href="{lemma_link}" target="_blank" style="text-decoration:none; color:#1d4ed8;">{lem_out}</a>'
+                        # 4. Extract Grammatical Data
+                        all_unsandhied = []
+                        all_lemmas = []
+                        all_tags = []
                         
-                        is_verb = any(x in all_tags[i] for x in ["Tense=", "Mood=", "VerbForm"])
-                        word_html = f'<a href="https://ashtadhyayi.com/dhatu?search={uns_dev_encoded}" target="_blank" style="text-decoration:none; color:#1d4ed8;">{uns_out}</a>' if is_verb else uns_out
+                        for j in range(len(texts)):
+                            entry = data[j] if j < len(data) else {}
+                            gram_analysis = entry.get("grammatical_analysis", [])
+                            
+                            for g in gram_analysis:
+                                all_unsandhied.append(g.get("unsandhied", "").rstrip("-"))
+                                all_lemmas.append(g.get("lemma", "").rstrip("-"))
+                                all_tags.append(g.get("tag", ""))
+                                
+                        def to_output(txt):
+                            return transliterate.process("IAST", output_script_sel, txt)
+                        def to_dev(txt):
+                            return transliterate.process("IAST", "Devanagari", txt)
                         
-                        table_html += f"<tr><td style='border-bottom:1px solid #eee; padding:10px;'>{i+1}</td>"
-                        table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{word_html}</td>"
-                        table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{lemma_html}</td>"
-                        table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{tag_result}</td></tr>"
+                        # Segmentation Output
+                        st.subheader(t_padaccheda)
+                        seg_output = " ".join(to_output(u) for u in all_unsandhied)
+                        st.code(seg_output, language="text") # Includes native Copy Button
                         
-                    table_html += "</table></div>"
-                    st.markdown(table_html, unsafe_allow_html=True)
-                else:
-                    st.info(t_hellwig_warn)
-                
-            except Exception as e:
-                st.error(f"Analysis failed: {e}")
+                        # Rendering Word Data
+                        st.subheader(t_word_analysis)
+                        table_html = "<div style='overflow-x:auto;'><table style='width:100%; border-collapse: collapse;'>"
+                        table_html += f"<tr><th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_no}</th>"
+                        table_html += f"<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_word}</th>"
+                        table_html += f"<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_lemma}</th>"
+                        table_html += f"<th style='text-align:left; border-bottom:1px solid #e5e5e5; padding:10px;'>{t_col_grammar}</th></tr>"
+                        
+                        for i in range(len(all_unsandhied)):
+                            uns_out = to_output(all_unsandhied[i])
+                            lem_out = to_output(all_lemmas[i])
+                            uns_dev = to_dev(all_unsandhied[i])
+                            lem_dev = to_dev(all_lemmas[i])
+                            
+                            tag_result = post_process_tags(uns_dev, all_tags[i])
+                            if output_script_sel != "Devanagari":
+                                tag_result = transliterate.process("Devanagari", output_script_sel, tag_result)
+                                
+                            uns_dev_encoded = urllib.parse.quote(uns_dev)
+                            lem_dev_encoded = urllib.parse.quote(lem_dev)
+                            
+                            lemma_link = get_dict_url(lem_dev_encoded, dict_choice)
+                            lemma_html = f'<a href="{lemma_link}" target="_blank" style="text-decoration:none; color:#1d4ed8;">{lem_out}</a>'
+                            
+                            is_verb = any(x in all_tags[i] for x in ["Tense=", "Mood=", "VerbForm"])
+                            word_html = f'<a href="https://ashtadhyayi.com/dhatu?search={uns_dev_encoded}" target="_blank" style="text-decoration:none; color:#1d4ed8;">{uns_out}</a>' if is_verb else uns_out
+                            
+                            table_html += f"<tr><td style='border-bottom:1px solid #eee; padding:10px;'>{i+1}</td>"
+                            table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{word_html}</td>"
+                            table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{lemma_html}</td>"
+                            table_html += f"<td style='border-bottom:1px solid #eee; padding:10px;'>{tag_result}</td></tr>"
+                            
+                        table_html += "</table></div>"
+                        st.markdown(table_html, unsafe_allow_html=True)
+                        
+                except Exception as e:
+                    st.error(f"{t_error_fail} {e}")
 
     # --- FOOTERS ---
     st.markdown("---")
